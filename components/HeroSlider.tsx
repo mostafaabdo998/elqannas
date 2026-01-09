@@ -17,14 +17,15 @@ const HeroSlider: React.FC<HeroSliderProps> = ({ articles, onArticleClick }) => 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col lg:flex-row gap-8">
-        
-        {/* العرض الرئيسي */}
         <div 
-          className="lg:w-[72%] relative rounded-[48px] overflow-hidden group cursor-pointer shadow-2xl aspect-video lg:aspect-auto lg:h-[600px]"
+          className="lg:w-[72%] relative rounded-[48px] overflow-hidden group cursor-pointer shadow-2xl aspect-video lg:aspect-auto lg:h-[600px] bg-gray-100"
           onClick={() => onArticleClick(active)}
         >
+          {/* Optimization: High fetch priority for LCP image */}
           <img 
             src={active.imageUrl} 
+            // @ts-ignore
+            fetchpriority="high"
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105" 
             alt={active.title.replace(/<\/?[^>]+(>|$)/g, "")}
           />
@@ -49,42 +50,25 @@ const HeroSlider: React.FC<HeroSliderProps> = ({ articles, onArticleClick }) => 
           </div>
         </div>
 
-        {/* القائمة الجانبية التفاعلية */}
         <div className="lg:w-[28%] flex flex-col gap-4 overflow-y-auto max-h-[600px] custom-scrollbar pr-2">
-          <div className="mb-2 px-2">
-             <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">أبرز العناوين</span>
-          </div>
           {featured.map((article, idx) => (
             <div 
               key={article.id}
               onClick={() => setCurrentIndex(idx)}
               className={`flex gap-4 p-4 rounded-[32px] cursor-pointer transition-all duration-300 border-2 ${
                 currentIndex === idx 
-                ? 'border-red-600 bg-white shadow-2xl -translate-x-2' 
-                : 'border-transparent bg-gray-50/50 hover:bg-white hover:shadow-lg'
+                ? 'border-red-600 bg-white shadow-xl' 
+                : 'border-transparent bg-gray-50/50 hover:bg-white'
               }`}
             >
-              <div className="w-20 h-20 shrink-0 rounded-2xl overflow-hidden shadow-inner border border-gray-100">
-                <img src={article.imageUrl} className="w-full h-full object-cover" alt="" />
+              <div className="w-20 h-20 shrink-0 rounded-2xl overflow-hidden bg-gray-200">
+                <img src={article.imageUrl} loading="lazy" className="w-full h-full object-cover" alt="" />
               </div>
               <div className="flex flex-col justify-center">
-                <span className="text-[9px] font-black text-red-600 mb-2 uppercase tracking-tighter">{article.category}</span>
-                <h3 
-                  className="text-sm font-black text-gray-900 line-clamp-2 leading-tight"
-                  dangerouslySetInnerHTML={{ __html: article.title }}
-                />
+                <h3 className="text-sm font-black text-gray-900 line-clamp-2 leading-tight" dangerouslySetInnerHTML={{ __html: article.title }} />
               </div>
             </div>
           ))}
-          
-          <div className="mt-auto p-8 bg-neutral-900 rounded-[40px] text-white relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-2 h-full bg-red-600"></div>
-            <div className="relative z-10">
-               <div className="text-[10px] font-black text-gray-500 uppercase mb-2">Exclusive</div>
-               <div className="text-xl font-black leading-none mb-4">اشترك في النشرة البريدية</div>
-               <button className="w-full py-3 bg-white text-black font-black text-[10px] uppercase rounded-2xl hover:bg-red-600 hover:text-white transition-all">Join Now</button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

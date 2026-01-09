@@ -5,20 +5,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>القناص نيوز | بوابة الخبر والتحليل</title>
+    <!-- Preconnect to external APIs -->
+    <link rel="preconnect" href="https://www.elqannas.net">
+    <link rel="preconnect" href="https://esm.sh">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Use swap to prevent invisible text -->
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Cairo:wght@700;900&display=swap&font-display=swap" rel="stylesheet">
+    
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2050399255820518" crossorigin="anonymous"></script>
     <style>
       :root { --news-red: #e11d48; }
-      body { font-family: 'Almarai', sans-serif; background-color: #fcfcfc; color: #1a1a1a; }
+      body { font-family: 'Almarai', sans-serif; background-color: #fcfcfc; color: #1a1a1a; text-rendering: optimizeLegibility; }
       @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
       .animate-marquee { display: inline-block; white-space: nowrap; animation: marquee 30s linear infinite; }
-      .animate-marquee:hover { animation-play-state: paused; }
       .custom-scrollbar::-webkit-scrollbar { width: 4px; }
       .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--news-red); border-radius: 10px; }
       .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      /* Skeleton Animation */
+      .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: skeleton-loading 1.5s infinite; }
+      @keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
     <script type="importmap">
 {
@@ -34,7 +42,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- إضافة السكريبت الرئيسي هنا لضمان بدء تشغيل التطبيق -->
     <script type="module" src="index.tsx"></script>
   </body>
 </html>

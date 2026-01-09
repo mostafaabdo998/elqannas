@@ -1,17 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Header from './components/Header.tsx';
 import HeroSlider from './components/HeroSlider.tsx';
 import NewsGrid from './components/NewsGrid.tsx';
 import Footer from './components/Footer.tsx';
 import ArticleView from './components/ArticleView.tsx';
-import AdUnit from './components/AdUnit.tsx';
 import { NewsArticle, SiteSettings, CategoryItem, PageItem } from './types.ts';
 
 const WP_API_ROOT = 'https://www.elqannas.net/wp-json/wp/v2';
-const username = 'mostafaabdo99';
-const password = '0Gl9 aTQY dokO Ut2Y JXAG QZ3d';
-const credentials = btoa(`${username}:${password}`);
+const credentials = btoa('mostafaabdo99:0Gl9 aTQY dokO Ut2Y JXAG QZ3d');
+const CACHE_KEY = 'elqannas_cache_v1';
 
 const App: React.FC = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
@@ -20,155 +18,121 @@ const App: React.FC = () => {
   const [pages, setPages] = useState<PageItem[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchingArticle, setFetchingArticle] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
-  const [currentCategory, setCurrentCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const applyRankMathSEO = (article: NewsArticle | null) => {
-    const defaultTitle = siteSettings?.title || 'القناص نيوز';
-    const defaultDesc = siteSettings?.description || 'بوابتك للخبر والتحليل';
-
-    if (!article) {
-      document.title = defaultTitle;
-      return;
-    }
-
-    const title = article.seo?.rank_math_title || article.title.replace(/<\/?[^>]+(>|$)/g, "");
-    const desc = article.seo?.rank_math_description || article.excerpt.replace(/<\/?[^>]+(>|$)/g, "");
-    
-    document.title = `${title} | ${defaultTitle}`;
-    
-    const updateMeta = (selector: string, content: string) => {
-      let el = document.querySelector(selector);
-      if (el) el.setAttribute('content', content);
-    };
-
-    updateMeta('meta[name="description"]', desc);
-    updateMeta('meta[property="og:title"]', title);
-    updateMeta('meta[property="og:description"]', desc);
-    updateMeta('meta[property="og:image"]', article.imageUrl);
-
-    let script = document.getElementById('json-ld-article');
-    if (!script) {
-      script = document.createElement('script');
-      script.id = 'json-ld-article';
-      script.setAttribute('type', 'application/ld+json');
-      document.head.appendChild(script);
-    }
-    script.innerHTML = JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "NewsArticle",
-      "headline": title,
-      "image": [article.imageUrl],
-      "datePublished": article.date,
-      "author": [{ "@type": "Person", "name": article.author }]
-    });
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const headers = { 'Authorization': `Basic ${credentials}` };
-        const [settingsRes, catsRes, pagesRes, postsRes] = await Promise.all([
-          fetch(`${WP_API_ROOT}/settings`, { headers }),
-          fetch(`${WP_API_ROOT}/categories?per_page=20&hide_empty=true`),
-          fetch(`${WP_API_ROOT}/pages?per_page=6`),
-          fetch(`${WP_API_ROOT}/posts?_embed&per_page=50`)
-        ]);
-
-        if (settingsRes.ok) setSiteSettings(await settingsRes.json());
-        if (catsRes.ok) setCategories(await catsRes.json());
-        if (pagesRes.ok) setPages(await pagesRes.json());
-        if (postsRes.ok) {
-          const posts = await postsRes.json();
-          const mapped = posts.map(mapWPPost);
-          setArticles(mapped);
-          setFilteredArticles(mapped);
-        }
-        setLoading(false);
-      } catch (error) {
-        console.error('Data Load Error:', error);
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  const mapWPPost = (post: any): NewsArticle => ({
+  const mapWPPost = useCallback((post: any): NewsArticle => ({
     id: post.id.toString(),
     title: post.title.rendered,
     excerpt: post.excerpt.rendered,
     content: post.content.rendered,
     category: post._embedded?.['wp:term']?.[0]?.[0]?.name || 'عام',
     author: post._embedded?.['author']?.[0]?.name || 'القناص',
-    date: new Date(post.date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }),
+    date: new Date(post.date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' }),
     imageUrl: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || `https://picsum.photos/seed/${post.id}/800/450`,
     slug: post.slug,
-    seo: {
-      rank_math_title: post.rank_math_title,
-      rank_math_description: post.rank_math_description,
-    }
-  });
+  }), []);
 
+  // جلب مقال واحد بالـ ID (مهم جداً للـ SEO والدخول من جوجل)
+  const fetchSingleArticle = async (id: string) => {
+    setFetchingArticle(true);
+    try {
+      const res = await fetch(`${WP_API_ROOT}/posts/${id}?_embed`);
+      if (res.ok) {
+        const post = await res.json();
+        const mapped = mapWPPost(post);
+        setSelectedArticle(mapped);
+      }
+    } catch (error) {
+      console.error("Error fetching single post:", error);
+    } finally {
+      setFetchingArticle(false);
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      const headers = { 'Authorization': `Basic ${credentials}` };
+      const [settingsRes, catsRes, pagesRes, postsRes] = await Promise.all([
+        fetch(`${WP_API_ROOT}/settings`, { headers }),
+        fetch(`${WP_API_ROOT}/categories?per_page=100&hide_empty=true`), // جلب كل التصنيفات
+        fetch(`${WP_API_ROOT}/pages?per_page=10`),
+        fetch(`${WP_API_ROOT}/posts?_embed&per_page=30`)
+      ]);
+
+      const [settings, cats, pgs, posts] = await Promise.all([
+        settingsRes.ok ? settingsRes.json() : null,
+        catsRes.ok ? catsRes.json() : [],
+        pagesRes.ok ? pagesRes.json() : [],
+        postsRes.ok ? postsRes.json() : []
+      ]);
+
+      const mappedPosts = posts.map(mapWPPost);
+      setArticles(mappedPosts);
+      setCategories(cats);
+      setPages(pgs);
+      setSiteSettings(settings);
+      setLoading(false);
+    } catch (error) {
+      console.error('Fetch Error:', error);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [mapWPPost]);
+
+  // إدارة الراوتينج الذكي
   useEffect(() => {
     const handleRoute = () => {
       const hash = window.location.hash || '#/';
+      
       if (hash === '#/') {
         setSelectedArticle(null);
-        setCurrentCategory(null);
         setFilteredArticles(articles);
-        applyRankMathSEO(null);
       } else if (hash.startsWith('#category/')) {
-        const categorySlug = hash.replace('#category/', '');
-        const category = categories.find(c => c.slug === categorySlug);
-        if (category) {
-          setCurrentCategory(category.name);
-          setFilteredArticles(articles.filter(a => a.category === category.name));
+        const slug = hash.replace('#category/', '');
+        const cat = categories.find(c => c.slug === slug);
+        if (cat) {
+          setFilteredArticles(articles.filter(a => a.category === cat.name));
           setSelectedArticle(null);
-          window.scrollTo(0, 0);
         }
       } else if (hash.includes('/')) {
         const parts = hash.split('/');
         const id = parts[parts.length - 1];
-        const art = articles.find(a => a.id === id);
-        if (art) {
-          setSelectedArticle(art);
-          applyRankMathSEO(art);
-          window.scrollTo(0, 0);
+        
+        // البحث عن المقال محلياً أولاً
+        const localArt = articles.find(a => a.id === id);
+        if (localArt) {
+          setSelectedArticle(localArt);
+        } else {
+          // إذا لم يوجد (مقال قديم من جوجل)، نقوم بجلبه فوراً من الـ API
+          fetchSingleArticle(id);
         }
       }
     };
-    if (!loading) {
-      window.addEventListener('hashchange', handleRoute);
-      handleRoute();
-    }
-    return () => window.removeEventListener('hashchange', handleRoute);
-  }, [articles, categories, loading]);
 
-  const handleSearch = (query: string) => {
+    handleRoute();
+    window.addEventListener('hashchange', handleRoute);
+    return () => window.removeEventListener('hashchange', handleRoute);
+  }, [articles, categories]);
+
+  const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
     if (!query) {
       setFilteredArticles(articles);
     } else {
       const filtered = articles.filter(a => 
-        a.title.toLowerCase().includes(query.toLowerCase()) || 
-        a.excerpt.toLowerCase().includes(query.toLowerCase())
+        a.title.toLowerCase().includes(query.toLowerCase())
       );
       setFilteredArticles(filtered);
     }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
-        <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mb-6"></div>
-        <div className="text-xl font-black text-gray-900 animate-pulse">جاري تحضير الخبر...</div>
-      </div>
-    );
-  }
+  }, [articles]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#fcfcfc]">
+    <div className="min-h-screen flex flex-col bg-white">
       <Header 
         settings={siteSettings} 
         categories={categories} 
@@ -177,7 +141,9 @@ const App: React.FC = () => {
       />
       
       <main className="flex-grow">
-        {selectedArticle ? (
+        {(loading || fetchingArticle) && !selectedArticle ? (
+          <SkeletonHome />
+        ) : selectedArticle ? (
           <ArticleView 
             article={selectedArticle} 
             onBack={() => window.location.hash = '/'} 
@@ -185,17 +151,7 @@ const App: React.FC = () => {
           />
         ) : (
           <div className="animate-in fade-in duration-500">
-            {currentCategory || searchQuery ? (
-              <div className="container mx-auto px-4 py-12 border-b border-gray-100">
-                <h2 className="text-4xl font-black text-gray-900 tracking-tighter">
-                  {searchQuery ? `نتائج البحث عن: ${searchQuery}` : currentCategory}
-                </h2>
-                <div className="h-1 w-20 bg-red-600 mt-4"></div>
-              </div>
-            ) : (
-              <HeroSlider articles={articles} onArticleClick={(a) => window.location.hash = `/${a.slug}/${a.id}`} />
-            )}
-            
+            <HeroSlider articles={articles} onArticleClick={(a) => window.location.hash = `/${a.slug}/${a.id}`} />
             <NewsGrid 
               articles={filteredArticles} 
               onArticleClick={(a) => window.location.hash = `/${a.slug}/${a.id}`} 
@@ -208,5 +164,19 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+const SkeletonHome = () => (
+  <div className="container mx-auto px-4 py-8">
+    <div className="w-full h-[400px] skeleton rounded-[48px] mb-12"></div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      {[1, 2, 3].map(i => (
+        <div key={i} className="space-y-4">
+          <div className="aspect-[4/3] skeleton rounded-[2.5rem]"></div>
+          <div className="h-6 skeleton w-3/4 rounded-md"></div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 export default App;
