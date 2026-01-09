@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import Header from './components/Header';
-import HeroSlider from './components/HeroSlider';
-import NewsGrid from './components/NewsGrid';
-import Footer from './components/Footer';
-import ArticleView from './components/ArticleView';
-import AdUnit from './components/AdUnit';
-import { NewsArticle, SiteSettings, CategoryItem, PageItem } from './types';
+import Header from './components/Header.tsx';
+import HeroSlider from './components/HeroSlider.tsx';
+import NewsGrid from './components/NewsGrid.tsx';
+import Footer from './components/Footer.tsx';
+import ArticleView from './components/ArticleView.tsx';
+import AdUnit from './components/AdUnit.tsx';
+import { NewsArticle, SiteSettings, CategoryItem, PageItem } from './types.ts';
 
 const WP_API_ROOT = 'https://www.elqannas.net/wp-json/wp/v2';
 const username = 'mostafaabdo99';
@@ -48,7 +48,6 @@ const App: React.FC = () => {
     updateMeta('meta[property="og:description"]', desc);
     updateMeta('meta[property="og:image"]', article.imageUrl);
 
-    // إضافة JSON-LD للـ SEO
     let script = document.getElementById('json-ld-article');
     if (!script) {
       script = document.createElement('script');
