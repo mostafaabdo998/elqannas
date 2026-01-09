@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header.tsx';
 import HeroSlider from './components/HeroSlider.tsx';
 import NewsGrid from './components/NewsGrid.tsx';
@@ -9,7 +9,6 @@ import { NewsArticle, SiteSettings, CategoryItem, PageItem } from './types.ts';
 
 const WP_API_ROOT = 'https://www.elqannas.net/wp-json/wp/v2';
 const credentials = btoa('mostafaabdo99:0Gl9 aTQY dokO Ut2Y JXAG QZ3d');
-const CACHE_KEY = 'elqannas_cache_v1';
 
 const App: React.FC = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
@@ -20,7 +19,44 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [fetchingArticle, setFetchingArticle] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+
+  // دالة لتحديث الميتا تاج (SEO)
+  const updateMetaTags = useCallback((article: NewsArticle | null, settings: SiteSettings | null) => {
+    if (article) {
+      // تحديث العنوان
+      document.title = article.seo?.rank_math_title || `${article.title.replace(/<\/?[^>]+(>|$)/g, "")} | القناص نيوز`;
+      
+      // تحديث الوصف
+      let description = article.seo?.rank_math_description || article.excerpt.replace(/<\/?[^>]+(>|$)/g, "").substring(0, 160);
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        metaDesc.setAttribute('name', 'description');
+        document.head.appendChild(metaDesc);
+      }
+      metaDesc.setAttribute('content', description);
+
+      // إضافة Open Graph لضمان شكل المقال عند المشاركة
+      const ogTags = [
+        { property: 'og:title', content: article.title.replace(/<\/?[^>]+(>|$)/g, "") },
+        { property: 'og:description', content: description },
+        { property: 'og:image', content: article.imageUrl },
+        { property: 'og:type', content: 'article' }
+      ];
+
+      ogTags.forEach(tag => {
+        let el = document.querySelector(`meta[property="${tag.property}"]`);
+        if (!el) {
+          el = document.createElement('meta');
+          el.setAttribute('property', tag.property);
+          document.head.appendChild(el);
+        }
+        el.setAttribute('content', tag.content);
+      });
+    } else {
+      document.title = settings?.title || 'القناص نيوز | بوابة الخبر والتحليل';
+    }
+  }, []);
 
   const mapWPPost = useCallback((post: any): NewsArticle => ({
     id: post.id.toString(),
@@ -32,20 +68,34 @@ const App: React.FC = () => {
     date: new Date(post.date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' }),
     imageUrl: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || `https://picsum.photos/seed/${post.id}/800/450`,
     slug: post.slug,
+    seo: {
+      rank_math_title: post.rank_math_title || post.title.rendered,
+      rank_math_description: post.rank_math_description || post.excerpt.rendered,
+      rank_math_head: post.rank_math_head || ''
+    }
   }), []);
 
-  // جلب مقال واحد بالـ ID (مهم جداً للـ SEO والدخول من جوجل)
-  const fetchSingleArticle = async (id: string) => {
+  const fetchSingleArticle = async (idOrSlug: string) => {
     setFetchingArticle(true);
     try {
-      const res = await fetch(`${WP_API_ROOT}/posts/${id}?_embed`);
+      // نحاول البحث بالـ ID أولاً ثم بالـ Slug لضمان أقصى توافق مع روابط جوجل
+      let url = `${WP_API_ROOT}/posts/${idOrSlug}?_embed`;
+      if (isNaN(Number(idOrSlug))) {
+        url = `${WP_API_ROOT}/posts?slug=${idOrSlug}&_embed`;
+      }
+      
+      const res = await fetch(url);
       if (res.ok) {
-        const post = await res.json();
-        const mapped = mapWPPost(post);
-        setSelectedArticle(mapped);
+        const data = await res.json();
+        const post = Array.isArray(data) ? data[0] : data;
+        if (post) {
+          const mapped = mapWPPost(post);
+          setSelectedArticle(mapped);
+          updateMetaTags(mapped, siteSettings);
+        }
       }
     } catch (error) {
-      console.error("Error fetching single post:", error);
+      console.error("Error fetching article:", error);
     } finally {
       setFetchingArticle(false);
     }
@@ -55,18 +105,16 @@ const App: React.FC = () => {
     try {
       const headers = { 'Authorization': `Basic ${credentials}` };
       const [settingsRes, catsRes, pagesRes, postsRes] = await Promise.all([
-        fetch(`${WP_API_ROOT}/settings`, { headers }),
-        fetch(`${WP_API_ROOT}/categories?per_page=100&hide_empty=true`), // جلب كل التصنيفات
+        fetch(`${WP_API_ROOT}/settings`, { headers }).catch(() => null),
+        fetch(`${WP_API_ROOT}/categories?per_page=100&hide_empty=true`),
         fetch(`${WP_API_ROOT}/pages?per_page=10`),
-        fetch(`${WP_API_ROOT}/posts?_embed&per_page=30`)
+        fetch(`${WP_API_ROOT}/posts?_embed&per_page=40`) // جلب كمية أكبر للتغطية
       ]);
 
-      const [settings, cats, pgs, posts] = await Promise.all([
-        settingsRes.ok ? settingsRes.json() : null,
-        catsRes.ok ? catsRes.json() : [],
-        pagesRes.ok ? pagesRes.json() : [],
-        postsRes.ok ? postsRes.json() : []
-      ]);
+      const settings = settingsRes && settingsRes.ok ? await settingsRes.json() : null;
+      const cats = catsRes.ok ? await catsRes.json() : [];
+      const pgs = pagesRes.ok ? await pagesRes.json() : [];
+      const posts = postsRes.ok ? await postsRes.json() : [];
 
       const mappedPosts = posts.map(mapWPPost);
       setArticles(mappedPosts);
@@ -84,7 +132,6 @@ const App: React.FC = () => {
     fetchData();
   }, [mapWPPost]);
 
-  // إدارة الراوتينج الذكي
   useEffect(() => {
     const handleRoute = () => {
       const hash = window.location.hash || '#/';
@@ -92,6 +139,7 @@ const App: React.FC = () => {
       if (hash === '#/') {
         setSelectedArticle(null);
         setFilteredArticles(articles);
+        updateMetaTags(null, siteSettings);
       } else if (hash.startsWith('#category/')) {
         const slug = hash.replace('#category/', '');
         const cat = categories.find(c => c.slug === slug);
@@ -101,15 +149,14 @@ const App: React.FC = () => {
         }
       } else if (hash.includes('/')) {
         const parts = hash.split('/');
-        const id = parts[parts.length - 1];
+        const idOrSlug = parts[parts.length - 1];
         
-        // البحث عن المقال محلياً أولاً
-        const localArt = articles.find(a => a.id === id);
+        const localArt = articles.find(a => a.id === idOrSlug || a.slug === idOrSlug);
         if (localArt) {
           setSelectedArticle(localArt);
+          updateMetaTags(localArt, siteSettings);
         } else {
-          // إذا لم يوجد (مقال قديم من جوجل)، نقوم بجلبه فوراً من الـ API
-          fetchSingleArticle(id);
+          fetchSingleArticle(idOrSlug);
         }
       }
     };
@@ -117,10 +164,9 @@ const App: React.FC = () => {
     handleRoute();
     window.addEventListener('hashchange', handleRoute);
     return () => window.removeEventListener('hashchange', handleRoute);
-  }, [articles, categories]);
+  }, [articles, categories, siteSettings, updateMetaTags]);
 
   const handleSearch = useCallback((query: string) => {
-    setSearchQuery(query);
     if (!query) {
       setFilteredArticles(articles);
     } else {

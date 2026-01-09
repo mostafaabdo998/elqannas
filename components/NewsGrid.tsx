@@ -17,7 +17,8 @@ const NewsGrid: React.FC<NewsGridProps> = ({ articles, onArticleClick }) => {
     </div>
   );
 
-  const ArticleCard = ({ article }: { article: NewsArticle }) => (
+  // Fix: Explicitly typed ArticleCard as React.FC to resolve the 'key' property error in the map function.
+  const ArticleCard: React.FC<{ article: NewsArticle }> = ({ article }) => (
     <div onClick={() => onArticleClick(article)} className="group cursor-pointer">
       <div className="aspect-[4/3] rounded-[2.5rem] overflow-hidden mb-6 shadow-xl border border-gray-50 relative">
         <img loading="lazy" src={article.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
