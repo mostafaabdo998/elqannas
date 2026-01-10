@@ -31,17 +31,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+// Fix: Provided missing trendingArticles prop to ArticleView
 export default async function Page({ params }: Props) {
   const article = await getArticle(params.id);
   if (!article) return <div className="py-40 text-center font-black">عفواً، لم يتم العثور على هذا المقال</div>;
 
-  // جلب مقالات ذات صلة من نفس الفئة (تبسيطاً نأخذ أول 10)
-  const related = await getArticles({ page: 1 });
+  // جلب مقالات لاستخدامها في الأقسام الجانبية والمقالات ذات الصلة
+  const articles = await getArticles({ page: 1 });
+  const related = articles.filter(a => a.id !== article.id);
+  const trending = articles.slice().reverse().slice(0, 6);
 
   return (
     <ArticleView 
       article={article} 
-      relatedArticles={related.filter(a => a.id !== article.id)} 
+      relatedArticles={related} 
+      trendingArticles={trending}
     />
   );
 }

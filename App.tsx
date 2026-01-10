@@ -19,7 +19,12 @@ const App: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  
+  // Navigation
+  const [currentView, setCurrentView] = useState<'home' | 'article' | 'category'>('home');
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+  const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark';
@@ -38,6 +43,15 @@ const App: React.FC = () => {
     else document.documentElement.classList.remove('dark');
   }, [isDarkMode]);
 
+  const formatArabicDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('ar-EG', { 
+      day: 'numeric', 
+      month: 'long', 
+      year: 'numeric'
+    });
+  };
+
   const mapWPPost = useCallback((post: any): NewsArticle => ({
     id: post.id.toString(),
     title: post.title.rendered,
@@ -45,89 +59,130 @@ const App: React.FC = () => {
     content: post.content.rendered,
     category: post._embedded?.['wp:term']?.[0]?.[0]?.name || 'عام',
     author: post._embedded?.['author']?.[0]?.name || 'القناص',
-    date: new Date(post.date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' }),
+    date: formatArabicDate(post.date),
     imageUrl: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || `https://picsum.photos/seed/${post.id}/800/450`,
     slug: post.slug,
   }), []);
 
-  const fetchData = useCallback(async (pageNum = 1, isLoadMore = false) => {
-    if (isLoadMore) setLoadingMore(true);
+  const fetchData = useCallback(async (pageNum = 1, catId: number | null = null, isMore = false) => {
+    if (isMore) setLoadingMore(true);
     else setLoading(true);
 
     try {
       const headers = { 'Authorization': `Basic ${credentials}` };
-      const response = await fetch(`${WP_API_ROOT}/posts?_embed&per_page=12&page=${pageNum}`, { headers });
+      let url = `${WP_API_ROOT}/posts?_embed&per_page=12&page=${pageNum}`;
+      if (catId) url += `&categories=${catId}`;
+
+      const response = await fetch(url, { headers });
       
-      if (pageNum === 1) {
-        const [settingsRes, catsRes, pagesRes] = await Promise.all([
-          fetch(`${WP_API_ROOT}/settings`, { headers }).catch(() => null),
+      if (pageNum === 1 && !isMore) {
+        const [catsRes, pagesRes] = await Promise.all([
           fetch(`${WP_API_ROOT}/categories?per_page=100&hide_empty=true`),
           fetch(`${WP_API_ROOT}/pages?per_page=10`)
         ]);
-        if (settingsRes?.ok) setSiteSettings(await settingsRes.json());
-        if (catsRes?.ok) setCategories(await catsRes.json());
-        if (pagesRes?.ok) setPages(await pagesRes.json());
+        if (catsRes.ok) setCategories(await catsRes.json());
+        if (pagesRes.ok) setPages(await pagesRes.json());
+        setSiteSettings({ title: 'القناص نيوز', description: 'بوابة الخبر والتحليل' });
       }
 
       if (response.ok) {
         const posts = await response.json();
-        const mappedPosts = posts.map(mapWPPost);
-        if (isLoadMore) setArticles(prev => [...prev, ...mappedPosts]);
-        else setArticles(mappedPosts);
+        const mapped = posts.map(mapWPPost);
+        if (isMore) setArticles(prev => [...prev, ...mapped]);
+        else setArticles(mapped);
         setHasMore(posts.length === 12);
       }
-    } catch (e) { console.error(e); }
-    setLoading(false);
-    setLoadingMore(false);
+    } catch (e) { 
+      console.error(e); 
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
   }, [mapWPPost]);
 
   useEffect(() => { fetchData(1); }, [fetchData]);
 
-  const handleLoadMore = () => {
-    const next = page + 1;
-    setPage(next);
-    fetchData(next, true);
+  const handleCategoryClick = (cat: CategoryItem) => {
+    setActiveCategoryId(cat.id);
+    setPage(1);
+    setCurrentView('category');
+    fetchData(1, cat.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleArticleClick = (article: NewsArticle) => {
+    setSelectedArticle(article);
+    setCurrentView('article');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBackHome = () => {
+    setCurrentView('home');
+    setSelectedArticle(null);
+    setActiveCategoryId(null);
+    setPage(1);
+    fetchData(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading && articles.length === 0) {
     return (
       <div className="min-h-screen bg-white dark:bg-midnight flex items-center justify-center">
-        <div className="w-20 h-20 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-bold text-slate-400">تحميل القناص...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="transition-colors duration-500 min-h-screen dark:bg-midnight">
+    <div className="min-h-screen dark:bg-midnight transition-colors duration-500">
       <Header 
         settings={siteSettings} 
         categories={categories} 
         breakingArticles={articles.slice(0, 5)} 
         isDarkMode={isDarkMode}
         toggleDarkMode={toggleDarkMode}
+        onCategoryClick={handleCategoryClick}
+        onHomeClick={handleBackHome}
       />
       
-      <main>
-        {selectedArticle ? (
+      <main className="animate-slide">
+        {currentView === 'article' && selectedArticle ? (
           <ArticleView 
             article={selectedArticle} 
-            onBack={() => setSelectedArticle(null)}
-            relatedArticles={articles.filter(a => a.id !== selectedArticle.id).slice(0, 5)}
+            onBack={handleBackHome}
+            relatedArticles={articles.filter(a => a.id !== selectedArticle.id)}
+            trendingArticles={articles.slice().reverse().slice(0, 6)} // تجريبي للأكثر قراءة
           />
         ) : (
-          <div className="fade-up">
+          <>
             <HeroSlider 
               articles={articles} 
-              onArticleClick={setSelectedArticle} 
+              onArticleClick={handleArticleClick} 
             />
+            
+            {currentView === 'category' && (
+              <div className="container mx-auto px-6 mt-16">
+                <h2 className="text-3xl font-black text-red-600 border-r-4 border-red-600 pr-4">
+                  قسم: {categories.find(c => c.id === activeCategoryId)?.name}
+                </h2>
+              </div>
+            )}
+
             <NewsGrid 
               articles={articles} 
-              onArticleClick={setSelectedArticle}
-              onLoadMore={handleLoadMore}
+              onArticleClick={handleArticleClick}
+              onLoadMore={() => {
+                const next = page + 1;
+                setPage(next);
+                fetchData(next, activeCategoryId, true);
+              }}
               hasMore={hasMore}
               loadingMore={loadingMore}
             />
-          </div>
+          </>
         )}
       </main>
 

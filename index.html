@@ -7,7 +7,7 @@
     <title>القناص نيوز | بوابة الخبر والتحليل</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@200;300;400;500;600;700&family=Vazirmatn:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Vazirmatn:wght@400;700;800;900&display=swap" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -16,17 +16,12 @@
         theme: {
           extend: {
             colors: {
-              'midnight': '#0F172A', // لون داكن ناعم (Navy Slate)
+              'midnight': '#0F172A',
               'brand-red': '#E11D48',
-              'content-gray': '#475569',
             },
             fontFamily: {
-              'sans': ['Readex Pro', 'sans-serif'],
+              'sans': ['IBM Plex Sans Arabic', 'sans-serif'],
               'display': ['Vazirmatn', 'sans-serif'],
-            },
-            borderRadius: {
-              'xl-custom': '2rem',
-              '2xl-custom': '3rem',
             }
           }
         }
@@ -34,47 +29,70 @@
     </script>
     
     <style>
-      body { 
-        font-family: 'Readex Pro', sans-serif;
-        background-color: #FFFFFF;
-        color: #1E293B;
-        line-height: 1.6;
-      }
+      body { font-family: 'IBM Plex Sans Arabic', sans-serif; background-color: #FFFFFF; color: #1E293B; overflow-x: hidden; }
       .dark body { background-color: #0F172A; color: #F1F5F9; }
-      
       h1, h2, h3 { font-family: 'Vazirmatn', sans-serif; font-weight: 900; }
       
       .glass-effect {
-        background: rgba(255, 255, 255, 0.85);
+        background: rgba(255, 255, 255, 0.9);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(0,0,0,0.05);
       }
       .dark .glass-effect {
-        background: rgba(15, 23, 42, 0.85);
-      }
-      
-      .news-card-shadow {
-        box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05);
-      }
-      .dark .news-card-shadow {
-        box-shadow: 0 20px 50px -12px rgba(0,0,0,0.5);
+        background: rgba(15, 23, 42, 0.9);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
       }
 
-      /* تحسين سلاسة الأنيميشن */
-      * { transition: background-color 0.3s ease, border-color 0.3s ease; }
+      .article-render h2 {
+        font-size: 1.85rem !important;
+        background: #F8FAFC;
+        border-right: 6px solid #E11D48;
+        padding: 1rem 1.5rem;
+        margin: 3rem 0 1.5rem 0 !important;
+        border-radius: 0 0.5rem 0.5rem 0;
+        color: #0F172A;
+      }
+      .dark .article-render h2 { background: rgba(255,255,255,0.03); color: #FFF; }
+      
+      .article-render h3 {
+        font-size: 1.5rem !important;
+        color: #E11D48;
+        border-bottom: 2px dashed rgba(225, 29, 72, 0.2);
+        padding-bottom: 0.5rem;
+        margin: 2.5rem 0 1.25rem 0 !important;
+        display: inline-block;
+      }
+
+      @keyframes slideIn {
+        from { opacity: 0; transform: translateX(20px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+      .animate-slide { animation: slideIn 0.6s cubic-bezier(0.2, 0, 0.2, 1) forwards; }
+      
+      .sidebar-card {
+        transition: all 0.3s ease;
+        border-right: 2px solid transparent;
+      }
+      .sidebar-card:hover {
+        border-right-color: #E11D48;
+        background: rgba(225, 29, 72, 0.02);
+      }
     </style>
-  <script type="importmap">
+    <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@^19.2.3",
+    "react-dom": "https://esm.sh/react-dom@^19.2.3",
+    "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client",
+    "@google/genai": "https://esm.sh/@google/genai",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/",
-    "next/": "https://esm.sh/next@^16.1.1/",
     "next": "https://esm.sh/next@^16.1.1"
   }
 }
 </script>
-</head>
+  </head>
   <body>
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
