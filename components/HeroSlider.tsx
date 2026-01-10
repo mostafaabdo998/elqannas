@@ -1,10 +1,12 @@
+'use client';
 
 import React, { useState } from 'react';
 import { NewsArticle } from '../types';
 
 interface HeroSliderProps {
   articles: NewsArticle[];
-  onArticleClick: (article: NewsArticle) => void;
+  // Fix: Made onArticleClick optional to resolve error in app/page.tsx
+  onArticleClick?: (article: NewsArticle) => void;
 }
 
 const HeroSlider: React.FC<HeroSliderProps> = ({ articles, onArticleClick }) => {
@@ -19,7 +21,8 @@ const HeroSlider: React.FC<HeroSliderProps> = ({ articles, onArticleClick }) => 
       <div className="flex flex-col lg:flex-row gap-8">
         <div 
           className="lg:w-[72%] relative rounded-[48px] overflow-hidden group cursor-pointer shadow-2xl aspect-video lg:aspect-auto lg:h-[600px] bg-gray-100"
-          onClick={() => onArticleClick(active)}
+          // Fix: Used optional chaining for onArticleClick
+          onClick={() => onArticleClick?.(active)}
         >
           {/* Optimization: High fetch priority for LCP image */}
           <img 

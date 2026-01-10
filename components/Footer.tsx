@@ -1,5 +1,6 @@
 
 import React from 'react';
+import Link from 'next/link';
 import { SiteSettings, CategoryItem, PageItem } from '../types';
 
 interface FooterProps {
@@ -14,7 +15,6 @@ const Footer: React.FC<FooterProps> = ({ settings, categories, pages }) => {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           
-          {/* Brand & Description */}
           <div>
             <div className="flex items-center gap-3 mb-6">
               <div className="bg-red-600 w-10 h-10 rounded-lg flex items-center justify-center font-black text-xl">
@@ -27,35 +27,32 @@ const Footer: React.FC<FooterProps> = ({ settings, categories, pages }) => {
             </p>
           </div>
 
-          {/* Real Categories */}
           <div>
             <h4 className="text-red-600 font-black text-sm uppercase tracking-widest mb-8">الأقسام</h4>
             <ul className="grid grid-cols-2 gap-4">
               {categories.slice(0, 8).map(cat => (
                 <li key={cat.id}>
-                  <a href={`#category/${cat.slug}`} className="text-gray-400 hover:text-white transition-colors text-sm font-bold">
+                  <Link href={`/category/${cat.slug}`} className="text-gray-400 hover:text-white transition-colors text-sm font-bold">
                     {cat.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Real Pages from WP */}
           <div>
             <h4 className="text-red-600 font-black text-sm uppercase tracking-widest mb-8">روابط تهمك</h4>
             <ul className="space-y-4">
               {pages.map(page => (
                 <li key={page.id}>
-                  <a href={`#page/${page.slug}`} className="text-gray-400 hover:text-white transition-colors text-sm font-bold">
+                  <Link href={`/page/${page.slug}`} className="text-gray-400 hover:text-white transition-colors text-sm font-bold">
                     {page.title.rendered}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Social & Contact */}
           <div>
             <h4 className="text-red-600 font-black text-sm uppercase tracking-widest mb-8">تابعنا</h4>
             <div className="flex gap-4">
@@ -75,7 +72,7 @@ const Footer: React.FC<FooterProps> = ({ settings, categories, pages }) => {
         <div className="border-t border-white/5 pt-10 flex flex-col md:flex-row justify-between items-center text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
           <p>© {new Date().getFullYear()} {settings?.title || 'القناص نيوز'} - جميع الحقوق محفوظة</p>
           <div className="mt-4 md:mt-0 flex gap-6">
-            <span className="hover:text-red-600 cursor-pointer transition-colors">Headless CMS Engine</span>
+            <span className="hover:text-red-600 cursor-pointer transition-colors">Powered by Next.js & WP</span>
           </div>
         </div>
       </div>

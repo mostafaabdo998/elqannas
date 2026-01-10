@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Header from './components/Header.tsx';
 import HeroSlider from './components/HeroSlider.tsx';
 import NewsGrid from './components/NewsGrid.tsx';
@@ -12,51 +12,30 @@ const credentials = btoa('mostafaabdo99:0Gl9 aTQY dokO Ut2Y JXAG QZ3d');
 
 const App: React.FC = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
-  const [filteredArticles, setFilteredArticles] = useState<NewsArticle[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [pages, setPages] = useState<PageItem[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentCategoryId, setCurrentCategoryId] = useState<number | null>(null);
   const [fetchingArticle, setFetchingArticle] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
 
-  // دالة لتحديث الميتا تاج (SEO)
-  const updateMetaTags = useCallback((article: NewsArticle | null, settings: SiteSettings | null) => {
-    if (article) {
-      // تحديث العنوان
-      document.title = article.seo?.rank_math_title || `${article.title.replace(/<\/?[^>]+(>|$)/g, "")} | القناص نيوز`;
-      
-      // تحديث الوصف
-      let description = article.seo?.rank_math_description || article.excerpt.replace(/<\/?[^>]+(>|$)/g, "").substring(0, 160);
-      let metaDesc = document.querySelector('meta[name="description"]');
-      if (!metaDesc) {
-        metaDesc = document.createElement('meta');
-        metaDesc.setAttribute('name', 'description');
-        document.head.appendChild(metaDesc);
-      }
-      metaDesc.setAttribute('content', description);
+  const articlesRef = useRef<NewsArticle[]>([]);
 
-      // إضافة Open Graph لضمان شكل المقال عند المشاركة
-      const ogTags = [
-        { property: 'og:title', content: article.title.replace(/<\/?[^>]+(>|$)/g, "") },
-        { property: 'og:description', content: description },
-        { property: 'og:image', content: article.imageUrl },
-        { property: 'og:type', content: 'article' }
-      ];
+  const toggleDarkMode = () => {
+    const nextMode = !isDarkMode;
+    setIsDarkMode(nextMode);
+    localStorage.setItem('theme', nextMode ? 'dark' : 'light');
+  };
 
-      ogTags.forEach(tag => {
-        let el = document.querySelector(`meta[property="${tag.property}"]`);
-        if (!el) {
-          el = document.createElement('meta');
-          el.setAttribute('property', tag.property);
-          document.head.appendChild(el);
-        }
-        el.setAttribute('content', tag.content);
-      });
-    } else {
-      document.title = settings?.title || 'القناص نيوز | بوابة الخبر والتحليل';
-    }
-  }, []);
+  useEffect(() => {
+    if (isDarkMode) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [isDarkMode]);
 
   const mapWPPost = useCallback((post: any): NewsArticle => ({
     id: post.id.toString(),
@@ -69,121 +48,138 @@ const App: React.FC = () => {
     imageUrl: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || `https://picsum.photos/seed/${post.id}/800/450`,
     slug: post.slug,
     seo: {
-      rank_math_title: post.rank_math_title || post.title.rendered,
-      rank_math_description: post.rank_math_description || post.excerpt.rendered,
-      rank_math_head: post.rank_math_head || ''
+      rank_math_title: post.rank_math_title,
+      rank_math_description: post.rank_math_description
     }
   }), []);
 
-  const fetchSingleArticle = async (idOrSlug: string) => {
-    setFetchingArticle(true);
-    try {
-      // نحاول البحث بالـ ID أولاً ثم بالـ Slug لضمان أقصى توافق مع روابط جوجل
-      let url = `${WP_API_ROOT}/posts/${idOrSlug}?_embed`;
-      if (isNaN(Number(idOrSlug))) {
-        url = `${WP_API_ROOT}/posts?slug=${idOrSlug}&_embed`;
+  // Fix: Wrapped fetchData in useCallback to ensure stable reference for useEffect and handleLoadMore
+  const fetchData = useCallback(async (pageNum = 1, isLoadMore = false, catId: number | null = null) => {
+    if (isLoadMore) setLoadingMore(true);
+    else {
+      setLoading(true);
+      if (!isLoadMore) {
+        setArticles([]); // تصفير المقالات عند تغيير القسم
+        window.scrollTo(0, 0);
       }
-      
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        const post = Array.isArray(data) ? data[0] : data;
-        if (post) {
-          const mapped = mapWPPost(post);
-          setSelectedArticle(mapped);
-          updateMetaTags(mapped, siteSettings);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching article:", error);
-    } finally {
-      setFetchingArticle(false);
     }
-  };
 
-  const fetchData = async () => {
     try {
       const headers = { 'Authorization': `Basic ${credentials}` };
-      const [settingsRes, catsRes, pagesRes, postsRes] = await Promise.all([
-        fetch(`${WP_API_ROOT}/settings`, { headers }).catch(() => null),
-        fetch(`${WP_API_ROOT}/categories?per_page=100&hide_empty=true`),
-        fetch(`${WP_API_ROOT}/pages?per_page=10`),
-        fetch(`${WP_API_ROOT}/posts?_embed&per_page=40`) // جلب كمية أكبر للتغطية
-      ]);
+      let postsUrl = `${WP_API_ROOT}/posts?_embed&per_page=12&page=${pageNum}`;
+      if (catId) postsUrl += `&categories=${catId}`;
+      
+      const response = await fetch(postsUrl, { headers });
+      
+      if (pageNum === 1 && !isLoadMore) {
+        // جلب الإعدادات والأقسام فقط في المرة الأولى
+        const [settingsRes, catsRes, pagesRes] = await Promise.all([
+          fetch(`${WP_API_ROOT}/settings`, { headers }).catch(() => null),
+          fetch(`${WP_API_ROOT}/categories?per_page=100&hide_empty=true`),
+          fetch(`${WP_API_ROOT}/pages?per_page=10`)
+        ]);
 
-      const settings = settingsRes && settingsRes.ok ? await settingsRes.json() : null;
-      const cats = catsRes.ok ? await catsRes.json() : [];
-      const pgs = pagesRes.ok ? await pagesRes.json() : [];
-      const posts = postsRes.ok ? await postsRes.json() : [];
+        if (settingsRes?.ok) setSiteSettings(await settingsRes.json());
+        if (catsRes?.ok) setCategories(await catsRes.json());
+        if (pagesRes?.ok) setPages(await pagesRes.json());
+      }
 
-      const mappedPosts = posts.map(mapWPPost);
-      setArticles(mappedPosts);
-      setCategories(cats);
-      setPages(pgs);
-      setSiteSettings(settings);
-      setLoading(false);
+      if (response.ok) {
+        const posts = await response.json();
+        const mappedPosts = posts.map(mapWPPost);
+        
+        if (isLoadMore) setArticles(prev => [...prev, ...mappedPosts]);
+        else setArticles(mappedPosts);
+        
+        setHasMore(posts.length === 12);
+      } else {
+        setHasMore(false);
+      }
     } catch (error) {
       console.error('Fetch Error:', error);
+      setHasMore(false);
+    } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  };
-
-  useEffect(() => {
-    fetchData();
   }, [mapWPPost]);
+
+  // Fix: Implemented handleLoadMore to fix the "Cannot find name 'handleLoadMore'" error
+  const handleLoadMore = useCallback(() => {
+    if (loadingMore || !hasMore) return;
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchData(nextPage, true, currentCategoryId);
+  }, [page, loadingMore, hasMore, currentCategoryId, fetchData]);
 
   useEffect(() => {
     const handleRoute = () => {
       const hash = window.location.hash || '#/';
-      
       if (hash === '#/') {
         setSelectedArticle(null);
-        setFilteredArticles(articles);
-        updateMetaTags(null, siteSettings);
+        if (currentCategoryId !== null) {
+          setCurrentCategoryId(null);
+          setPage(1);
+          fetchData(1, false, null);
+        } else if (articles.length === 0) {
+          fetchData(1);
+        }
       } else if (hash.startsWith('#category/')) {
         const slug = hash.replace('#category/', '');
-        const cat = categories.find(c => c.slug === slug);
-        if (cat) {
-          setFilteredArticles(articles.filter(a => a.category === cat.name));
+        const foundCat = categories.find(c => c.slug === slug);
+        if (foundCat && foundCat.id !== currentCategoryId) {
+          setCurrentCategoryId(foundCat.id);
+          setPage(1);
+          fetchData(1, false, foundCat.id);
           setSelectedArticle(null);
         }
       } else if (hash.includes('/')) {
         const parts = hash.split('/');
         const idOrSlug = parts[parts.length - 1];
-        
-        const localArt = articles.find(a => a.id === idOrSlug || a.slug === idOrSlug);
-        if (localArt) {
-          setSelectedArticle(localArt);
-          updateMetaTags(localArt, siteSettings);
+        // محاولة إيجاد المقال محلياً أولاً لتسريع العرض
+        const local = articles.find(a => a.id === idOrSlug || a.slug === idOrSlug);
+        if (local) {
+          setSelectedArticle(local);
         } else {
-          fetchSingleArticle(idOrSlug);
+          setFetchingArticle(true);
+          fetch(`${WP_API_ROOT}/posts/${idOrSlug}?_embed`)
+            .then(res => res.ok ? res.json() : fetch(`${WP_API_ROOT}/posts?slug=${idOrSlug}&_embed`).then(r => r.json()))
+            .then(data => {
+              const post = Array.isArray(data) ? data[0] : data;
+              if (post) setSelectedArticle(mapWPPost(post));
+            })
+            .catch(err => console.error(err))
+            .finally(() => setFetchingArticle(false));
         }
       }
     };
-
     handleRoute();
     window.addEventListener('hashchange', handleRoute);
     return () => window.removeEventListener('hashchange', handleRoute);
-  }, [articles, categories, siteSettings, updateMetaTags]);
+  }, [categories, currentCategoryId, articles, fetchData, mapWPPost]);
 
   const handleSearch = useCallback((query: string) => {
-    if (!query) {
-      setFilteredArticles(articles);
-    } else {
-      const filtered = articles.filter(a => 
-        a.title.toLowerCase().includes(query.toLowerCase())
-      );
-      setFilteredArticles(filtered);
-    }
-  }, [articles]);
+    if (!query) return;
+    setLoading(true);
+    fetch(`${WP_API_ROOT}/posts?_embed&search=${query}&per_page=12`)
+      .then(res => res.json())
+      .then(posts => {
+        setArticles(posts.map(mapWPPost));
+        setSelectedArticle(null);
+        setLoading(false);
+        setHasMore(false);
+      });
+  }, [mapWPPost]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${isDarkMode ? 'dark bg-neutral-950 text-white' : 'bg-white text-black'}`}>
       <Header 
         settings={siteSettings} 
         categories={categories} 
         breakingArticles={articles.slice(0, 5)} 
         onSearch={handleSearch}
+        isDarkMode={isDarkMode}
+        toggleDarkMode={toggleDarkMode}
       />
       
       <main className="flex-grow">
@@ -193,14 +189,25 @@ const App: React.FC = () => {
           <ArticleView 
             article={selectedArticle} 
             onBack={() => window.location.hash = '/'} 
-            relatedArticles={articles.filter(a => a.category === selectedArticle.category && a.id !== selectedArticle.id).slice(0, 3)}
+            relatedArticles={articles.filter(a => a.id !== selectedArticle.id).slice(0, 10)}
           />
         ) : (
-          <div className="animate-in fade-in duration-500">
-            <HeroSlider articles={articles} onArticleClick={(a) => window.location.hash = `/${a.slug}/${a.id}`} />
+          <div className="animate-in fade-in duration-700">
+            {!currentCategoryId && <HeroSlider articles={articles} onArticleClick={(a) => window.location.hash = `/${a.slug}/${a.id}`} />}
+            {currentCategoryId && (
+              <div className="container mx-auto px-4 py-16 text-center">
+                <h2 className="text-5xl md:text-7xl font-black text-black mb-4 tracking-tighter">
+                  {categories.find(c => c.id === currentCategoryId)?.name}
+                </h2>
+                <div className="w-24 h-2 bg-red-600 mx-auto rounded-full shadow-lg shadow-red-600/20"></div>
+              </div>
+            )}
             <NewsGrid 
-              articles={filteredArticles} 
+              articles={articles} 
               onArticleClick={(a) => window.location.hash = `/${a.slug}/${a.id}`} 
+              onLoadMore={handleLoadMore}
+              hasMore={hasMore}
+              loadingMore={loadingMore}
             />
           </div>
         )}
@@ -213,12 +220,12 @@ const App: React.FC = () => {
 
 const SkeletonHome = () => (
   <div className="container mx-auto px-4 py-8">
-    <div className="w-full h-[400px] skeleton rounded-[48px] mb-12"></div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      {[1, 2, 3].map(i => (
-        <div key={i} className="space-y-4">
-          <div className="aspect-[4/3] skeleton rounded-[2.5rem]"></div>
-          <div className="h-6 skeleton w-3/4 rounded-md"></div>
+    <div className="w-full h-[500px] bg-gray-50 dark:bg-neutral-900 animate-pulse rounded-[60px] mb-16"></div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+      {[1, 2, 3, 4, 5, 6].map(i => (
+        <div key={i} className="space-y-6">
+          <div className="aspect-[4/3] bg-gray-50 dark:bg-neutral-900 animate-pulse rounded-[40px]"></div>
+          <div className="h-8 bg-gray-50 dark:bg-neutral-900 animate-pulse w-3/4 rounded-lg"></div>
         </div>
       ))}
     </div>
