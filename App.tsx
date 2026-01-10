@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   
-  // Navigation
+  // نظام التنقل الداخلي (Routing Simulator)
   const [currentView, setCurrentView] = useState<'home' | 'article' | 'category'>('home');
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
@@ -43,15 +43,6 @@ const App: React.FC = () => {
     else document.documentElement.classList.remove('dark');
   }, [isDarkMode]);
 
-  const formatArabicDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('ar-EG', { 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric'
-    });
-  };
-
   const mapWPPost = useCallback((post: any): NewsArticle => ({
     id: post.id.toString(),
     title: post.title.rendered,
@@ -59,7 +50,7 @@ const App: React.FC = () => {
     content: post.content.rendered,
     category: post._embedded?.['wp:term']?.[0]?.[0]?.name || 'عام',
     author: post._embedded?.['author']?.[0]?.name || 'القناص',
-    date: formatArabicDate(post.date),
+    date: new Date(post.date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }),
     imageUrl: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || `https://picsum.photos/seed/${post.id}/800/450`,
     slug: post.slug,
   }), []);
@@ -76,13 +67,14 @@ const App: React.FC = () => {
       const response = await fetch(url, { headers });
       
       if (pageNum === 1 && !isMore) {
+        // جلب الأقسام والصفحات عند أول تحميل فقط
         const [catsRes, pagesRes] = await Promise.all([
           fetch(`${WP_API_ROOT}/categories?per_page=100&hide_empty=true`),
           fetch(`${WP_API_ROOT}/pages?per_page=10`)
         ]);
         if (catsRes.ok) setCategories(await catsRes.json());
         if (pagesRes.ok) setPages(await pagesRes.json());
-        setSiteSettings({ title: 'القناص نيوز', description: 'بوابة الخبر والتحليل' });
+        setSiteSettings({ title: 'القناص نيوز', description: 'بوابتك الإخبارية الموثوقة' });
       }
 
       if (response.ok) {
@@ -127,11 +119,9 @@ const App: React.FC = () => {
 
   if (loading && articles.length === 0) {
     return (
-      <div className="min-h-screen bg-white dark:bg-midnight flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-sm font-bold text-slate-400">تحميل القناص...</span>
-        </div>
+      <div className="min-h-screen bg-white dark:bg-midnight flex flex-col items-center justify-center gap-6">
+        <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin shadow-xl"></div>
+        <h2 className="text-xl font-black dark:text-white uppercase tracking-widest">القناص نيوز</h2>
       </div>
     );
   }
@@ -154,19 +144,16 @@ const App: React.FC = () => {
             article={selectedArticle} 
             onBack={handleBackHome}
             relatedArticles={articles.filter(a => a.id !== selectedArticle.id)}
-            trendingArticles={articles.slice().reverse().slice(0, 6)} // تجريبي للأكثر قراءة
+            trendingArticles={articles.slice().reverse().slice(0, 6)} 
           />
         ) : (
           <>
-            <HeroSlider 
-              articles={articles} 
-              onArticleClick={handleArticleClick} 
-            />
+            <HeroSlider articles={articles} onArticleClick={handleArticleClick} />
             
             {currentView === 'category' && (
-              <div className="container mx-auto px-6 mt-16">
-                <h2 className="text-3xl font-black text-red-600 border-r-4 border-red-600 pr-4">
-                  قسم: {categories.find(c => c.id === activeCategoryId)?.name}
+              <div className="container mx-auto px-6 mt-20">
+                <h2 className="text-4xl font-black text-red-600 border-r-8 border-red-600 pr-6">
+                  {categories.find(c => c.id === activeCategoryId)?.name}
                 </h2>
               </div>
             )}
