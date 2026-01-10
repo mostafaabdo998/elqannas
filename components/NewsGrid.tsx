@@ -1,12 +1,11 @@
+
 'use client';
 
 import React from 'react';
 import { NewsArticle } from '../types';
-import AdUnit from './AdUnit';
 
 interface NewsGridProps {
   articles: NewsArticle[];
-  // Fix: Made onArticleClick optional to resolve missing prop error in app/page.tsx
   onArticleClick?: (article: NewsArticle) => void;
   onLoadMore?: () => void;
   hasMore?: boolean;
@@ -21,63 +20,64 @@ const NewsGrid: React.FC<NewsGridProps> = ({
   loadingMore = false 
 }) => {
   
-  if (articles.length === 0 && !loadingMore) return (
-    <div className="py-40 text-center text-gray-300 font-black uppercase tracking-[0.3em] text-sm">
-      لا توجد نتائج مطابقة لبحثك
-    </div>
-  );
-
   const ArticleCard: React.FC<{ article: NewsArticle }> = ({ article }) => (
-    // Fix: Used optional chaining for onArticleClick
-    <div onClick={() => onArticleClick?.(article)} className="group cursor-pointer">
-      <div className="aspect-[4/3] rounded-[3rem] overflow-hidden mb-8 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] border border-gray-50 dark:border-neutral-900 relative bg-gray-50 dark:bg-neutral-900">
-        <img loading="lazy" src={article.imageUrl} className="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110" alt="" />
-        <div className="absolute top-6 right-6">
-           <span className="bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl text-red-600 font-black text-[10px] px-5 py-2.5 rounded-full shadow-2xl border border-white/20 uppercase tracking-widest">{article.category}</span>
+    <div 
+      onClick={() => onArticleClick?.(article)} 
+      className="group cursor-pointer flex flex-col h-full bg-white dark:bg-midnight rounded-[2.5rem] p-4 news-card-shadow transition-all duration-500 border border-transparent hover:border-slate-100 dark:hover:border-white/5"
+    >
+      <div className="aspect-[16/10] rounded-[2rem] overflow-hidden mb-8 relative bg-slate-100 dark:bg-white/5">
+        <img 
+          loading="lazy" 
+          src={article.imageUrl} 
+          className="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110" 
+          alt={article.title} 
+        />
+        <div className="absolute top-5 right-5">
+           <span className="bg-white/90 dark:bg-midnight/90 backdrop-blur-md text-brand-red font-black text-[9px] px-4 py-2 rounded-xl shadow-lg uppercase tracking-widest">{article.category}</span>
         </div>
       </div>
-      <div className="px-4">
+      
+      <div className="px-3 flex-1 flex flex-col">
         <h3 
-          className="text-2xl md:text-3xl font-black text-black dark:text-white leading-[1.3] mb-5 group-hover:text-red-600 transition-colors line-clamp-2 tracking-tight" 
-          style={{ fontFamily: "'Cairo', sans-serif" }} 
+          className="text-xl md:text-2xl font-black text-slate-900 dark:text-white leading-[1.3] mb-6 group-hover:text-brand-red transition-colors line-clamp-3 tracking-tight" 
+          style={{ fontFamily: "'Vazirmatn', sans-serif" }}
           dangerouslySetInnerHTML={{ __html: article.title }} 
         />
-        <div className="flex items-center gap-4 text-[11px] font-black text-gray-400 dark:text-neutral-500 uppercase tracking-widest">
-          <span className="text-black dark:text-neutral-200">{article.author}</span>
-          <span className="w-2 h-2 bg-red-600 rounded-full"></span>
-          <span>{article.date}</span>
+        
+        <div className="mt-auto pt-6 flex items-center justify-between border-t border-slate-50 dark:border-white/5">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{article.author}</span>
+          <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{article.date}</span>
         </div>
       </div>
     </div>
   );
 
   return (
-    <section className="container mx-auto px-4 py-24">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-24">
+    <section className="container mx-auto px-6 py-24">
+      <div className="flex flex-col mb-16 gap-4">
+          <h2 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter">
+            أحدث <span className="text-brand-red">التغطيات</span>
+          </h2>
+          <div className="w-20 h-1.5 bg-brand-red rounded-full"></div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-14">
         {articles.map(article => (
           <ArticleCard key={article.id} article={article} />
         ))}
       </div>
 
       {hasMore && (
-        <div className="mt-32 flex justify-center">
+        <div className="mt-24 flex justify-center">
           <button 
             disabled={loadingMore}
             onClick={onLoadMore}
-            className={`group relative px-16 py-7 bg-black dark:bg-white dark:text-black text-white rounded-[2.5rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-red-600 dark:hover:bg-red-600 dark:hover:text-white transition-all duration-500 overflow-hidden ${loadingMore ? 'opacity-80 cursor-wait' : ''}`}
+            className="px-12 py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-brand-red dark:hover:bg-brand-red dark:hover:text-white transition-all shadow-xl active:scale-95"
           >
-            <span className="relative z-10 flex items-center gap-4">
-              {loadingMore && <span className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin"></span>}
-              {loadingMore ? 'جاري سحب المزيد...' : 'تحميل الأرشيف'}
-            </span>
-            <div className="absolute inset-0 bg-red-600 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+            {loadingMore ? 'جاري التحميل...' : 'اكتشف المزيد'}
           </button>
         </div>
       )}
-      
-      <div className="mt-24">
-        <AdUnit format="auto" />
-      </div>
     </section>
   );
 };
