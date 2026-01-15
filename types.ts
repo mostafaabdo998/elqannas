@@ -1,5 +1,4 @@
 
-// Fix: Added Category enum to resolve the missing export error in constants.tsx
 export enum Category {
   TECHNOLOGY = 'تكنولوجيا',
   ECONOMY = 'اقتصاد',
@@ -7,6 +6,11 @@ export enum Category {
   CULTURE = 'ثقافة',
   HEALTH = 'صحة',
   POLITICS = 'سياسة'
+}
+
+export interface NavItem {
+  label: string;
+  href: string;
 }
 
 export interface NewsArticle {
@@ -18,37 +22,35 @@ export interface NewsArticle {
   author: string;
   date: string;
   imageUrl: string;
-  isFeatured?: boolean;
   slug: string;
-  seo?: {
-    rank_math_title?: string;
-    rank_math_description?: string;
-    rank_math_focus_keyword?: string;
-    rank_math_robots?: string[];
-    rank_math_head?: string; // يحتوي على كود الميتا تاج كاملاً من رانك ماث
+  isFeatured?: boolean;
+  seo: {
+    metaTitle: string;
+    metaDescription: string;
+    focusKeyword: string;
+    canonicalUrl: string;
+    robots: string; // index, follow
+    ogImage: string;
+    jsonLd: string; // Schema.org Script
   };
 }
 
 export interface SiteSettings {
   title: string;
   description: string;
-  url?: string;
+  url: string;
+  logo: string;
 }
 
 export interface CategoryItem {
-  id: number;
+  id: string;
   name: string;
   slug: string;
 }
 
 export interface PageItem {
-  id: number;
-  title: { rendered: string };
-  link: string;
+  id: string;
+  title: string;
+  content: string;
   slug: string;
-}
-
-export interface NavItem {
-  label: string;
-  href: string;
 }

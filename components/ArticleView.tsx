@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -80,7 +79,8 @@ const ArticleView: React.FC<ArticleViewProps> = ({ article, relatedArticles, tre
 
     try {
       setLoadingAudio(true);
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      // Fix: Updated GoogleGenAI initialization to use process.env.API_KEY directly according to SDK guidelines
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       // تجهيز النص للقراءة (العنوان + مقتطف + جزء من المحتوى)
       const textToRead = `خبر من القناص نيوز. العنوان: ${article.title}. التفاصيل: ${article.excerpt.replace(/<\/?[^>]+(>|$)/g, "")}`;

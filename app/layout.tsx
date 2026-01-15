@@ -1,4 +1,5 @@
-
+// Fix: Added missing React import to resolve "Cannot find namespace 'React'" error
+import React from 'react';
 import './globals.css';
 import { getSettings, getCategories, getPages, getArticles } from '../lib/api';
 import Header from '../components/Header';

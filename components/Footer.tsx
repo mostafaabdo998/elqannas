@@ -6,9 +6,10 @@ interface FooterProps {
   settings: SiteSettings | null;
   categories: CategoryItem[];
   pages: PageItem[];
+  onDashboardOpen?: () => void;
 }
 
-const Footer: React.FC<FooterProps> = ({ settings, categories, pages }) => {
+const Footer: React.FC<FooterProps> = ({ settings, categories, pages, onDashboardOpen }) => {
   return (
     <footer className="bg-[#050505] text-white pt-20 pb-10 border-t border-white/5">
       <div className="container mx-auto px-6">
@@ -24,6 +25,12 @@ const Footer: React.FC<FooterProps> = ({ settings, categories, pages }) => {
             <p className="text-slate-400 text-sm leading-relaxed font-medium mb-8">
               {settings?.description || 'بوابتك الإخبارية الموثوقة لمتابعة الأحداث فور وقوعها بمهنية ومصداقية عالية من قلب الحدث.'}
             </p>
+            <button 
+              onClick={onDashboardOpen}
+              className="text-[10px] font-black text-red-600 uppercase tracking-widest hover:text-white transition-all"
+            >
+              دخول لوحة الإدارة →
+            </button>
           </div>
 
           <div>
@@ -45,7 +52,7 @@ const Footer: React.FC<FooterProps> = ({ settings, categories, pages }) => {
               {pages.map(page => (
                 <li key={page.id}>
                   <button className="text-slate-400 hover:text-white transition-colors text-xs font-bold tracking-wide">
-                    {page.title.rendered}
+                    {page.title}
                   </button>
                 </li>
               ))}

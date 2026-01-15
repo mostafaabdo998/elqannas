@@ -1,106 +1,33 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header.tsx';
 import HeroSlider from './components/HeroSlider.tsx';
 import NewsGrid from './components/NewsGrid.tsx';
 import Footer from './components/Footer.tsx';
 import ArticleView from './components/ArticleView.tsx';
+import Dashboard from './components/Dashboard.tsx';
+import MetaSEO from './components/MetaSEO.tsx';
 import { NewsArticle, SiteSettings, CategoryItem, PageItem } from './types.ts';
-
-const WP_API_ROOT = 'https://www.elqannas.net/wp-json/wp/v2';
-const credentials = btoa('mostafaabdo99:0Gl9 aTQY dokO Ut2Y JXAG QZ3d');
+import { getArticles, getCategories, getSettings } from './lib/api.ts';
 
 const App: React.FC = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [pages, setPages] = useState<PageItem[]>([]);
-  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const [siteSettings] = useState<SiteSettings>(getSettings());
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   
-  // نظام التنقل الداخلي (Routing Simulator)
-  const [currentView, setCurrentView] = useState<'home' | 'article' | 'category'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'article' | 'dashboard'>('home');
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
-  const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
-
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark';
-    }
-    return false;
-  });
-
-  const toggleDarkMode = () => {
-    const nextMode = !isDarkMode;
-    setIsDarkMode(nextMode);
-    localStorage.setItem('theme', nextMode ? 'dark' : 'light');
-  };
 
   useEffect(() => {
-    if (isDarkMode) document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
-  }, [isDarkMode]);
-
-  const mapWPPost = useCallback((post: any): NewsArticle => ({
-    id: post.id.toString(),
-    title: post.title.rendered,
-    excerpt: post.excerpt.rendered,
-    content: post.content.rendered,
-    category: post._embedded?.['wp:term']?.[0]?.[0]?.name || 'عام',
-    author: post._embedded?.['author']?.[0]?.name || 'القناص',
-    date: new Date(post.date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }),
-    imageUrl: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || `https://picsum.photos/seed/${post.id}/800/450`,
-    slug: post.slug,
-  }), []);
-
-  const fetchData = useCallback(async (pageNum = 1, catId: number | null = null, isMore = false) => {
-    if (isMore) setLoadingMore(true);
-    else setLoading(true);
-
-    try {
-      const headers = { 'Authorization': `Basic ${credentials}` };
-      let url = `${WP_API_ROOT}/posts?_embed&per_page=12&page=${pageNum}`;
-      if (catId) url += `&categories=${catId}`;
-
-      const response = await fetch(url, { headers });
-      
-      if (pageNum === 1 && !isMore) {
-        // جلب الأقسام والصفحات عند أول تحميل فقط
-        const [catsRes, pagesRes] = await Promise.all([
-          fetch(`${WP_API_ROOT}/categories?per_page=100&hide_empty=true`),
-          fetch(`${WP_API_ROOT}/pages?per_page=10`)
-        ]);
-        if (catsRes.ok) setCategories(await catsRes.json());
-        if (pagesRes.ok) setPages(await pagesRes.json());
-        setSiteSettings({ title: 'القناص نيوز', description: 'بوابتك الإخبارية الموثوقة' });
-      }
-
-      if (response.ok) {
-        const posts = await response.json();
-        const mapped = posts.map(mapWPPost);
-        if (isMore) setArticles(prev => [...prev, ...mapped]);
-        else setArticles(mapped);
-        setHasMore(posts.length === 12);
-      }
-    } catch (e) { 
-      console.error(e); 
-    } finally {
+    // محاكاة تحميل البيانات من CMS محلي
+    const loadData = () => {
+      setArticles(getArticles());
+      setCategories(getCategories());
       setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [mapWPPost]);
-
-  useEffect(() => { fetchData(1); }, [fetchData]);
-
-  const handleCategoryClick = (cat: CategoryItem) => {
-    setActiveCategoryId(cat.id);
-    setPage(1);
-    setCurrentView('category');
-    fetchData(1, cat.id);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+    };
+    loadData();
+  }, []);
 
   const handleArticleClick = (article: NewsArticle) => {
     setSelectedArticle(article);
@@ -111,69 +38,55 @@ const App: React.FC = () => {
   const handleBackHome = () => {
     setCurrentView('home');
     setSelectedArticle(null);
-    setActiveCategoryId(null);
-    setPage(1);
-    fetchData(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (loading && articles.length === 0) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-midnight flex flex-col items-center justify-center gap-6">
-        <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin shadow-xl"></div>
-        <h2 className="text-xl font-black dark:text-white uppercase tracking-widest">القناص نيوز</h2>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
+  if (currentView === 'dashboard') {
+    return <Dashboard categories={categories} pages={[]} onExit={handleBackHome} />;
+  }
+
   return (
-    <div className="min-h-screen dark:bg-midnight transition-colors duration-500">
+    <div className="min-h-screen bg-[#f0f2f5] dark:bg-midnight transition-colors duration-500">
+      {/* محرك SEO التلقائي */}
+      <MetaSEO article={selectedArticle || undefined} settings={siteSettings} />
+
       <Header 
         settings={siteSettings} 
         categories={categories} 
         breakingArticles={articles.slice(0, 5)} 
-        isDarkMode={isDarkMode}
-        toggleDarkMode={toggleDarkMode}
-        onCategoryClick={handleCategoryClick}
         onHomeClick={handleBackHome}
+        onDashboardOpen={() => setCurrentView('dashboard')}
       />
       
-      <main className="animate-slide">
+      <main>
         {currentView === 'article' && selectedArticle ? (
           <ArticleView 
             article={selectedArticle} 
             onBack={handleBackHome}
             relatedArticles={articles.filter(a => a.id !== selectedArticle.id)}
-            trendingArticles={articles.slice().reverse().slice(0, 6)} 
+            trendingArticles={articles} 
           />
         ) : (
           <>
             <HeroSlider articles={articles} onArticleClick={handleArticleClick} />
-            
-            {currentView === 'category' && (
-              <div className="container mx-auto px-6 mt-20">
-                <h2 className="text-4xl font-black text-red-600 border-r-8 border-red-600 pr-6">
-                  {categories.find(c => c.id === activeCategoryId)?.name}
-                </h2>
-              </div>
-            )}
-
             <NewsGrid 
               articles={articles} 
               onArticleClick={handleArticleClick}
-              onLoadMore={() => {
-                const next = page + 1;
-                setPage(next);
-                fetchData(next, activeCategoryId, true);
-              }}
-              hasMore={hasMore}
-              loadingMore={loadingMore}
+              hasMore={false}
             />
           </>
         )}
       </main>
 
-      <Footer settings={siteSettings} categories={categories} pages={pages} />
+      <Footer settings={siteSettings} categories={categories} pages={[]} onDashboardOpen={() => setCurrentView('dashboard')} />
     </div>
   );
 };

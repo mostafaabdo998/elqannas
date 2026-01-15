@@ -29,8 +29,16 @@ export const MOCK_ARTICLES: NewsArticle[] = [
     date: 'منذ ساعتين',
     imageUrl: 'https://picsum.photos/seed/tech/800/600',
     isFeatured: true,
-    // Added missing slug
-    slug: 'future-ai-arab-region'
+    slug: 'future-ai-arab-region',
+    seo: {
+      metaTitle: 'مستقبل الذكاء الاصطناعي في المنطقة العربية',
+      metaDescription: 'دراسة حديثة تتوقع نمواً هائلاً في قطاع التكنولوجيا خلال السنوات القادمة',
+      focusKeyword: 'الذكاء الاصطناعي',
+      canonicalUrl: 'https://elqannas.net/future-ai-arab-region',
+      robots: 'index, follow',
+      ogImage: 'https://picsum.photos/seed/tech/800/600',
+      jsonLd: '{}'
+    }
   },
   {
     id: '2',
@@ -42,8 +50,16 @@ export const MOCK_ARTICLES: NewsArticle[] = [
     date: 'منذ 4 ساعات',
     imageUrl: 'https://picsum.photos/seed/economy/800/600',
     isFeatured: true,
-    // Added missing slug
-    slug: 'strategic-steps-local-economy'
+    slug: 'strategic-steps-local-economy',
+    seo: {
+      metaTitle: 'خطوات استراتيجية لتعزيز الاقتصاد المحلي',
+      metaDescription: 'الحكومة تطلق حزمة من الحوافز لدعم المشروعات الصغيرة والمتوسطة',
+      focusKeyword: 'الاقتصاد المحلي',
+      canonicalUrl: 'https://elqannas.net/strategic-steps-local-economy',
+      robots: 'index, follow',
+      ogImage: 'https://picsum.photos/seed/economy/800/600',
+      jsonLd: '{}'
+    }
   },
   {
     id: '3',
@@ -54,8 +70,16 @@ export const MOCK_ARTICLES: NewsArticle[] = [
     author: 'ياسين علي',
     date: 'منذ 5 ساعات',
     imageUrl: 'https://picsum.photos/seed/sports/800/600',
-    // Added missing slug
-    slug: 'national-team-qualification'
+    slug: 'national-team-qualification',
+    seo: {
+      metaTitle: 'تأهل المنتخب لنهائيات البطولة الدولية',
+      metaDescription: 'فرحة عارمة تجتاح الجماهير بعد الفوز التاريخي',
+      focusKeyword: 'تأهل المنتخب',
+      canonicalUrl: 'https://elqannas.net/national-team-qualification',
+      robots: 'index, follow',
+      ogImage: 'https://picsum.photos/seed/sports/800/600',
+      jsonLd: '{}'
+    }
   },
   {
     id: '4',
@@ -66,8 +90,16 @@ export const MOCK_ARTICLES: NewsArticle[] = [
     author: 'ليلى مراد',
     date: 'منذ 6 ساعات',
     imageUrl: 'https://picsum.photos/seed/culture/800/600',
-    // Added missing slug
-    slug: 'contemporary-arts-festival'
+    slug: 'contemporary-arts-festival',
+    seo: {
+      metaTitle: 'افتتاح مهرجان الفنون المعاصرة',
+      metaDescription: 'فعاليات متنوعة تجمع نخبة من الفنانين من مختلف دول العالم',
+      focusKeyword: 'مهرجان الفنون',
+      canonicalUrl: 'https://elqannas.net/contemporary-arts-festival',
+      robots: 'index, follow',
+      ogImage: 'https://picsum.photos/seed/culture/800/600',
+      jsonLd: '{}'
+    }
   },
   {
     id: '5',
@@ -78,8 +110,16 @@ export const MOCK_ARTICLES: NewsArticle[] = [
     author: 'د. منى سعيد',
     date: 'منذ 8 ساعات',
     imageUrl: 'https://picsum.photos/seed/health/800/600',
-    // Added missing slug
-    slug: 'health-tips-weather'
+    slug: 'health-tips-weather',
+    seo: {
+      metaTitle: 'نصائح صحية للوقاية من تقلبات الجو',
+      metaDescription: 'خبراء الصحة يوصون باتباع نظام غذائي متوازن وتعزيز المناعة',
+      focusKeyword: 'نصائح صحية',
+      canonicalUrl: 'https://elqannas.net/health-tips-weather',
+      robots: 'index, follow',
+      ogImage: 'https://picsum.photos/seed/health/800/600',
+      jsonLd: '{}'
+    }
   },
   {
     id: '6',
@@ -90,7 +130,15 @@ export const MOCK_ARTICLES: NewsArticle[] = [
     author: 'جمال عبدالناصر',
     date: 'اليوم صباحاً',
     imageUrl: 'https://picsum.photos/seed/politics/800/600',
-    // Added missing slug
-    slug: 'international-climate-summit'
+    slug: 'international-climate-summit',
+    seo: {
+      metaTitle: 'قمة دولية لمناقشة التغيرات المناخية',
+      metaDescription: 'زعماء العالم يجتمعون لوضع حلول عاجلة لأزمة الاحتباس الحراري',
+      focusKeyword: 'قمة المناخ',
+      canonicalUrl: 'https://elqannas.net/international-climate-summit',
+      robots: 'index, follow',
+      ogImage: 'https://picsum.photos/seed/politics/800/600',
+      jsonLd: '{}'
+    }
   }
 ];

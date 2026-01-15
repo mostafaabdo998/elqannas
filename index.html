@@ -1,6 +1,6 @@
 
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" style="font-size: 125%;">
+<html lang="ar" dir="rtl" style="font-size: 115%;">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -18,10 +18,17 @@
             colors: {
               'midnight': '#0F172A',
               'brand-red': '#E11D48',
+              'wp-dark': '#1d2327',
+              'wp-sidebar': '#2c3338',
+              'wp-accent': '#2271b1',
             },
             fontFamily: {
               'sans': ['IBM Plex Sans Arabic', 'sans-serif'],
               'display': ['Vazirmatn', 'sans-serif'],
+            },
+            boxShadow: {
+              'premium': '0 20px 50px -12px rgba(0, 0, 0, 0.1)',
+              'inner-soft': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
             }
           }
         }
@@ -29,48 +36,55 @@
     </script>
     
     <style>
+      :root {
+        --wp-admin-blue: #2271b1;
+      }
       body { 
         font-family: 'IBM Plex Sans Arabic', sans-serif; 
-        background-color: #FFFFFF; 
-        color: #1E293B; 
+        background-color: #f0f2f5; 
+        color: #1e293b; 
         overflow-x: hidden;
         -webkit-font-smoothing: antialiased;
       }
       .dark body { background-color: #0F172A; color: #F1F5F9; }
-      h1, h2, h3 { font-family: 'Vazirmatn', sans-serif; font-weight: 900; }
       
-      .glass-effect {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border-bottom: 1px solid rgba(0,0,0,0.05);
-      }
-      .dark .glass-effect {
-        background: rgba(15, 23, 42, 0.95);
-        border-bottom: 1px solid rgba(255,255,255,0.05);
-      }
+      h1, h2, h3, h4 { font-family: 'Vazirmatn', sans-serif; font-weight: 900; }
+      
+      /* Scrollbar Styling */
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: #f1f1f1; }
+      ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+      ::-webkit-scrollbar-thumb:hover { background: #555; }
 
-      .article-render h2 {
-        font-size: 2rem !important;
-        background: #F8FAFC;
-        border-right: 6px solid #E11D48;
-        padding: 1rem 1.5rem;
-        margin: 3rem 0 1.5rem 0 !important;
-        border-radius: 0 0.5rem 0.5rem 0;
-        color: #0F172A;
+      .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
       }
-      .dark .article-render h2 { background: rgba(255,255,255,0.03); color: #FFF; }
+      .dark .glass-card {
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
 
       .animate-marquee {
         display: inline-block;
-        animation: marquee 40s linear infinite;
+        animation: marquee 50s linear infinite;
       }
       @keyframes marquee {
         0% { transform: translateX(100%); }
         100% { transform: translateX(-100%); }
       }
-      
-      .content-body p { margin-bottom: 1.5rem; }
+
+      /* WordPress Admin Styles Simulation */
+      .wp-menu-item:hover {
+        background-color: #1d2327;
+        color: #72aee6;
+      }
+      .wp-menu-item.active {
+        background-color: var(--wp-admin-blue);
+        color: white !important;
+      }
     </style>
     <script type="importmap">
 {

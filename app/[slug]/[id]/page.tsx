@@ -13,9 +13,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   // سحب البيانات من رانك ماث مع قيم بديلة
   return {
-    title: article.seo?.rank_math_title || article.title,
-    description: article.seo?.rank_math_description || article.excerpt.replace(/<\/?[^>]+(>|$)/g, ""),
-    keywords: article.seo?.rank_math_focus_keyword,
+    title: article.seo?.metaTitle || article.title,
+    description: article.seo?.metaDescription || article.excerpt.replace(/<\/?[^>]+(>|$)/g, ""),
+    keywords: article.seo?.focusKeyword,
     openGraph: {
       title: article.title,
       description: article.excerpt.replace(/<\/?[^>]+(>|$)/g, ""),
